@@ -308,6 +308,10 @@ const struct boot_mode soc_boot_modes[] = {
 void s_init(void)
 {
 	struct anatop_regs *anatop = (struct anatop_regs *)ANATOP_BASE_ADDR;
+	void __iomem *ccmbase = (void *)CCM_BASE_ADDR;
+	void __iomem *anatopbase = (void *)ANATOP_BASE_ADDR;
+	uint32_t old_ccm;
+
 	int is_6q = is_cpu_type(MXC_CPU_MX6Q);
 	u32 mask480;
 	u32 mask528;
@@ -318,6 +322,9 @@ void s_init(void)
 	 * workaround in ROM code, as bus clock need it
 	 */
 
+	//	printf( "tripping reset on mmdc\n" );
+	//	*((unsigned int *) 0x21b0018) = 0x40001602;
+
 	mask480 = ANATOP_PFD_CLKGATE_MASK(0) |
 		ANATOP_PFD_CLKGATE_MASK(1) |
 		ANATOP_PFD_CLKGATE_MASK(2) |
@@ -325,6 +332,37 @@ void s_init(void)
 	mask528 = ANATOP_PFD_CLKGATE_MASK(0) |
 		ANATOP_PFD_CLKGATE_MASK(1) |
 		ANATOP_PFD_CLKGATE_MASK(3);
+
+	/*
+	 * Force the CPU off of the PFD clocksource, as we're about
+	 * to disable it.
+	 */
+	//old_ccm = readl(ccmbase + 0x18);
+	//0x00da 0x1324 // DL default
+	//0x0002 0x0324 // Q default
+	//0x00 6 0x1324 // Our value
+	//writel(0x00020324, ccmbase + 0x18);
+
+	//// sean's
+#if 1
+	writel(0x00060324, ccmbase + 0x18); 
+	writel(0xFFFFFFC3, ccmbase + 0x74); // ipu clocks for dual-ch ??
+#else
+	writel((readl(ccmbase + 0x14) & ~0x1C00) | 0x2001400, ccmbase + 0x14);
+	writel(0x10000, anatopbase + 0x28);
+	writel(0x3040, anatopbase + 0x24);
+#endif
+
+	//	writel(0x20324, ccmbase+0x18);
+	
+	//// this crashes, why?
+	//	volatile int i;
+	//	i = * ((unsigned int *) 0x0b000000);
+	//	writel(0x0, 0x00b00000); // setup GPV0 -??
+
+	//writel(0,          ccmbase + 0x10);
+	//writel(0x0002a150, ccmbase + 0x38);
+	//writel(0x04120000, ccmbase + 0x58);
 
 	/*
 	 * Don't reset PFD2 on DL/S
@@ -335,6 +373,8 @@ void s_init(void)
 	writel(mask528, &anatop->pfd_528_set);
 	writel(mask480, &anatop->pfd_480_clr);
 	writel(mask528, &anatop->pfd_528_clr);
+
+	//writel(old_ccm, ccmbase + 0x18);
 }
 
 #ifdef CONFIG_IMX_HDMI

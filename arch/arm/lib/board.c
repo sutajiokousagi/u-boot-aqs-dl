@@ -237,6 +237,8 @@ init_fnc_t *init_sequence[] = {
 #endif
 #if defined(CONFIG_BOARD_EARLY_INIT_F)
 	board_early_init_f,
+#else
+#error "board_early_init disabled"
 #endif
 	timer_init,		/* initialize timer */
 #ifdef CONFIG_BOARD_POSTCLK_INIT
@@ -275,6 +277,7 @@ void board_init_f(ulong bootflag)
 	void *new_fdt = NULL;
 	size_t fdt_size = 0;
 
+	//	print_a();
 	memset((void *)gd, 0, sizeof(gd_t));
 
 	gd->mon_len = _bss_end_ofs;
@@ -596,17 +599,19 @@ void board_init_r(gd_t *id, ulong dest_addr)
 	puts("MMC:   ");
 	mmc_initialize(gd->bd);
 #endif
-
+	
 #ifdef CONFIG_HAS_DATAFLASH
 	AT91F_DataflashInit();
 	dataflash_print_info();
 #endif
 
 	/* initialize environment */
-	if (should_load_env())
+	if (should_load_env()) {
 		env_relocate();
-	else
+	}
+	else {
 		set_default_env(NULL);
+	}
 
 #if defined(CONFIG_CMD_PCI) || defined(CONFIG_PCI)
 	arm_pci_init();

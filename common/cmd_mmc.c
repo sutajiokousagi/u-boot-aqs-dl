@@ -403,6 +403,7 @@ static int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 		switch (state) {
 		case MMC_READ:
+		  printf( "to address %08x ... ", addr );
 			n = mmc->block_dev.block_read(curr_device, blk,
 						      cnt, addr);
 			/* flush cache after read */

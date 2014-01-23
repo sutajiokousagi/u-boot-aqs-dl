@@ -119,6 +119,7 @@ esdhc_pio_read_write(struct mmc *mmc, struct mmc_data *data)
 	uint irqstat;
 	uint timeout;
 
+	// printf( "pio_rw\n" );
 	if (data->flags & MMC_DATA_READ) {
 		blocks = data->blocks;
 		buffer = data->dest;
@@ -177,6 +178,7 @@ static int esdhc_setup_data(struct mmc *mmc, struct mmc_data *data)
 #ifndef CONFIG_SYS_FSL_ESDHC_USE_PIO
 	uint wml_value;
 
+	// printf( "setup_data\n" );
 	wml_value = data->blocksize/4;
 
 	if (data->flags & MMC_DATA_READ) {
@@ -270,15 +272,19 @@ esdhc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 	struct fsl_esdhc_cfg *cfg = (struct fsl_esdhc_cfg *)mmc->priv;
 	volatile struct fsl_esdhc *regs = (struct fsl_esdhc *)cfg->esdhc_base;
 
+	//	printf( "send_cmd\n" );
+
 #ifdef CONFIG_SYS_FSL_ERRATUM_ESDHC111
 	if (cmd->cmdidx == MMC_CMD_STOP_TRANSMISSION)
 		return 0;
 #endif
 
 	esdhc_write32(&regs->irqstat, -1);
+	// printf( " write32\n" );
 
 	sync();
 
+	// printf( " sync\n" );
 	/* Wait for the bus to be idle */
 	while ((esdhc_read32(&regs->prsstat) & PRSSTAT_CICHB) ||
 			(esdhc_read32(&regs->prsstat) & PRSSTAT_CIDHB))
@@ -294,6 +300,7 @@ esdhc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 	 */
 	udelay(1000);
 
+	// printf( " data\n" );
 	/* Set up for a data transfer if we have one */
 	if (data) {
 		int err;
@@ -303,13 +310,16 @@ esdhc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 			return err;
 	}
 
+	// printf( " xfertyp\n" );
 	/* Figure out the transfer arguments */
 	xfertyp = esdhc_xfertyp(cmd, data);
 
 	/* Mask all irqs */
+	// printf( " mask irqs\n" );
 	esdhc_write32(&regs->irqsigen, 0);
 
 	/* Send the command */
+	// printf( " send cmd\n" );
 	esdhc_write32(&regs->cmdarg, cmd->cmdarg);
 #if defined(CONFIG_FSL_USDHC)
 	esdhc_write32(&regs->mixctrl,
@@ -320,11 +330,13 @@ esdhc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 #endif
 
 	/* Wait for the command to complete */
+	// printf( " cmd waiting\n" );
 	while (!(esdhc_read32(&regs->irqstat) & (IRQSTAT_CC | IRQSTAT_CTOE)))
 		;
 
 	irqstat = esdhc_read32(&regs->irqstat);
 
+	// printf( " error check\n" );
 	/* Reset CMD and DATA portions on error */
 	if (irqstat & (CMD_ERR | IRQSTAT_CTOE)) {
 		esdhc_write32(&regs->sysctl, esdhc_read32(&regs->sysctl) |
@@ -380,6 +392,7 @@ esdhc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 		cmd->response[0] = esdhc_read32(&regs->cmdrsp0);
 
 	/* Wait until all of the blocks are transferred */
+	// printf( " ending\n" );
 	if (data) {
 #ifdef CONFIG_SYS_FSL_ESDHC_USE_PIO
 		esdhc_pio_read_write(mmc, data);
@@ -399,6 +412,8 @@ esdhc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 	}
 
 	esdhc_write32(&regs->irqstat, -1);
+
+	// printf( " done\n" );
 
 	return 0;
 }
@@ -465,6 +480,7 @@ static int esdhc_init(struct mmc *mmc)
 	struct fsl_esdhc *regs = (struct fsl_esdhc *)cfg->esdhc_base;
 	int timeout = 1000;
 
+	// printf( "esdhc_init\n" );
 	/* Reset the entire host controller */
 	esdhc_setbits32(&regs->sysctl, SYSCTL_RSTA);
 
@@ -500,6 +516,7 @@ static int esdhc_getcd(struct mmc *mmc)
 	struct fsl_esdhc *regs = (struct fsl_esdhc *)cfg->esdhc_base;
 	int timeout = 1000;
 
+	// printf( "esdhc_getcd\n" );
 	while (!(esdhc_read32(&regs->prsstat) & PRSSTAT_CINS) && --timeout)
 		udelay(1000);
 
@@ -510,6 +527,8 @@ static void esdhc_reset(struct fsl_esdhc *regs)
 {
 	unsigned long timeout = 100; /* wait max 100 ms */
 
+	// printf( "esdhc_reset\n" );
+	while (!(esdhc_read32(&regs->prsstat) & PRSSTAT_CINS) && --timeout)
 	/* reset the controller */
 	esdhc_setbits32(&regs->sysctl, SYSCTL_RSTA);
 
@@ -526,6 +545,7 @@ int fsl_esdhc_initialize(bd_t *bis, struct fsl_esdhc_cfg *cfg)
 	struct mmc *mmc;
 	u32 caps, voltage_caps;
 
+	// printf( "esdhc_initialize\n" );
 	if (!cfg)
 		return -1;
 
@@ -605,6 +625,7 @@ int fsl_esdhc_mmc_init(bd_t *bis)
 {
 	struct fsl_esdhc_cfg *cfg;
 
+	// printf( "mmc_init\n" );
 	cfg = calloc(sizeof(struct fsl_esdhc_cfg), 1);
 	cfg->esdhc_base = CONFIG_SYS_FSL_ESDHC_ADDR;
 	cfg->sdhc_clk = gd->arch.sdhc_clk;
@@ -616,6 +637,7 @@ void fdt_fixup_esdhc(void *blob, bd_t *bd)
 {
 	const char *compat = "fsl,esdhc";
 
+	// printf( "fixup\n" );
 #ifdef CONFIG_FSL_ESDHC_PIN_MUX
 	if (!hwconfig("esdhc")) {
 		do_fixup_by_compat(blob, compat, "status", "disabled",

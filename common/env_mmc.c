@@ -68,7 +68,7 @@ static int init_mmc_for_env(struct mmc *mmc)
 		puts("No MMC card found\n");
 		return -1;
 	}
-
+	
 	if (mmc_init(mmc)) {
 		puts("MMC init failed\n");
 		return -1;
@@ -277,7 +277,7 @@ void env_relocate_spec(void)
 	struct mmc *mmc = find_mmc_device(CONFIG_SYS_MMC_ENV_DEV);
 	u32 offset;
 	int ret;
-
+	
 	if (init_mmc_for_env(mmc)) {
 		ret = 1;
 		goto err;

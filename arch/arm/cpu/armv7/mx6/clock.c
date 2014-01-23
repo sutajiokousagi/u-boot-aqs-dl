@@ -483,6 +483,8 @@ unsigned int mxc_get_clock(enum mxc_clock clk)
 int do_mx6_showclocks(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	u32 freq;
+	int i;
+
 	freq = decode_pll(PLL_SYS, MXC_HCLK);
 	printf("PLL_SYS    %8d MHz\n", freq / 1000000);
 	freq = decode_pll(PLL_BUS, MXC_HCLK);
@@ -507,6 +509,21 @@ int do_mx6_showclocks(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	printf("USDHC4     %8d kHz\n", mxc_get_clock(MXC_ESDHC4_CLK) / 1000);
 	printf("EMI SLOW   %8d kHz\n", mxc_get_clock(MXC_EMI_SLOW_CLK) / 1000);
 	printf("IPG PERCLK %8d kHz\n", mxc_get_clock(MXC_IPG_PERCLK) / 1000);
+
+#if 0
+	for( i = 0x10008000; i < 0x10008300; i++ ) {
+	  if( (i % 16) == 0 )
+	    printf( "\n%08x: ", i );
+	  printf( "%02x ", (*((unsigned char *) i)) & 0xFF );
+	}
+	printf( "\n" );
+#endif
+
+	printf( "src memory map fuses (bootmodes)\n" );
+	//	printf( "%08x\n", *((unsigned int *) 0x20d8000) );
+	for( i = 0; i <= 0x44; i+= 4 ){
+	  printf( "%x: %08x\n", i + 0x20d8000, *((unsigned int *) (i + 0x20d8000))  );
+	}
 
 	return 0;
 }

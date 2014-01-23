@@ -21,6 +21,14 @@
 
 .globl _start
 _start: b	reset
+/*	ldr	pc, uart_ll_a
+	ldr	pc, uart_ll_a
+	ldr	pc, uart_ll_a
+	ldr	pc, uart_ll_a
+	ldr	pc, uart_ll_a
+	ldr	pc, uart_ll_a
+	ldr	pc, uart_ll_a */
+
 	ldr	pc, _undefined_instruction
 	ldr	pc, _software_interrupt
 	ldr	pc, _prefetch_abort
@@ -28,6 +36,21 @@ _start: b	reset
 	ldr	pc, _not_used
 	ldr	pc, _irq
 	ldr	pc, _fiq
+
+/*	
+uart_ll_a:
+	ldr r0, =0x021e8040  @utx0
+	mov r1, #0x2A
+	str r1, [r0]
+	b    uart_ll_a
+	
+	@mov r0, #021e8098
+	@mov r1, [r0]   @ usr2
+	@and r1, #00000008
+	*/
+	
+
+	
 #ifdef CONFIG_SPL_BUILD
 _undefined_instruction: .word _undefined_instruction
 _software_interrupt:	.word _software_interrupt
@@ -103,11 +126,52 @@ FIQ_STACK_START:
 IRQ_STACK_START_IN:
 	.word	0x0badc0de
 
+	/*
+do_test_uart:
+	ldr r0, =0x020e0000  // iomux
+	ldr r1, =0x4
+	str r1, [r0, #0x16c]
+	ldr r1, =0x4
+	str r1, [r0, #0x170]
+	
+	ldr r0, =0x020c4000  // CCM
+	ldr r1, =0xffffffff
+	str r1, [r0, #0x7c]
+	
+	ldr r0, =0x021e8000  // UART
+	ldr r1, =0x0
+	str r1, [r0, #0x80]
+	ldr r1, =0x4027
+	str r1, [r0, #0x84]
+	ldr r1, =0x704
+	str r1, [r0, #0x88]
+	ldr r1, =0xa81
+	str r1, [r0, #0x90]
+	ldr r1, =0x2b
+	str r1, [r0, #0x9c]
+	ldr r1, =0x13880
+	str r1, [r0, #0xb0]
+	ldr r1, =0x47f
+	str r1, [r0, #0xa4]
+	ldr r1, =0xc34f
+	str r1, [r0, #0xa8]
+	ldr r1, =0x1
+	str r1, [r0, #0x80]
+
+xmit_char:	
+	ldr r1, [r0, #0x98]  // UART2_USR2
+	and r1, #0x8
+	beq xmit_char
+	ldr r1, =0x61   // 'a'
+	str r1, [r0, #0x40]
+	b   xmit_char
+	*/
 /*
  * the actual reset code
  */
 
 reset:
+//	bl      do_test_uart
 	bl	save_boot_params
 	/*
 	 * disable interrupts (FIQ and IRQ), also set the cpu to SVC32 mode,
